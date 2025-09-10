@@ -20,4 +20,4 @@ gripper_main_node:
     DEBUG_TF: true
     WAYPOINT_D: 0.035
     GRAVITY_OFFSET_ROLL: 0.0
-    MOTION_PATH: "/motion/grip.yaml"
+    MOTION_PATH: "/motion/ball2.yaml"

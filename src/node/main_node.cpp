@@ -435,6 +435,7 @@ void GripperMainNode::getParamsFromRos()
   else {
     RCLCPP_INFO(get_logger(), "Parameters loaded.");
   }
+}
 } // namespace SRCIRC2025_HUMANOID_LOCOMOTION
 
 // ----- main -----
