@@ -1,23 +1,80 @@
 # humanoid_manipulator
-Intelligent Robot Competition Humanoid Robot Sports
+Intelligent Robot Competition – Humanoid Robot Sports
 
-##  outline
-휴머노이드 매니퓰레이터의 자율화 제어를 위한 ROS2 패키지입니다.
-Pinocchio 기반 IK 계산, 모션 생성, Teleop/Auto 모드를 지원합니다.
+## Outline
+> ROS2 package for autonomous control of a humanoid manipulator.  
+> Supports Pinocchio-based IK computation, motion generation, and Teleop/Auto modes.
 
-## how to run
+---
+
+## 📁 Table of Contents
+
+1. [Overview](#overview)  
+2. [Installation & Execution](#installation--execution)  
+3. [Parameter Tuning](#parameter-tuning)  
+4. [Development Environment](#development-environment)  
+5. [Dependencies](#dependencies)  
+
+---
+
+## Overview
+The **humanoid_manipulator** package provides inverse kinematics, motion control, and collision-aware manipulation for a humanoid robot.  
+It integrates:
+- Pinocchio for kinematics and dynamics
+- SRDF/URDF reference configurations
+- Teleoperation and automatic vision-based modes
+
+---
+
+## Installation & Execution
+
+### Run Teleop Mode
 ```bash
-# Teleop Mode 실행
-ros2 launch gripper_controller teleop_mode.launch.py
 
-# Auto Mode 실행
-ros2 launch gripper_controller auto_mode.launch.py
+ros2 launch humanoid_manipulator teleop_mode.launch.py
+
+```
+### Run Auto Mode
+```bash
+
+ros2 launch humanoid_manipulator auto_mode.launch.py
+
+```
+### Run EE Teleop Node (keyboard input)
+```bash
+
+ros2 run humanoid_manipulator ee_teleop_node
+
 ```
 
-## main dependency
-ROS2 Humble
+## Parameter Tuning
 
-Pinocchio / hpp-fcl (coal)
+Parameters are provided in config/ros_param.yaml.
+Key options:
+
+- MAX_ITERATIONS, POSITION_TOLERANCE, SE3_TOLERANCE
+
+- USE_REFERENCE (SRDF reference configuration)
+
+- IK_TILT_ONLY (z-axis alignment only mode)
+
+- Orientation weights: YAW_WEIGHT, ROLL_WEIGHT, PITCH_WEIGHT
+
+## Development Environment
+
+OS: Ubuntu 22.04
+
+ROS 2: Humble
+
+Languages: C++17, Python 3.10.12
+
+## Dependencies
+
+ROS2 Humble core packages
+
+Pinocchio
+
+hpp-fcl (coal)
 
 Eigen3
 

@@ -32,10 +32,11 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
   this->declare_parameter<double>("WAYPOINT_D", 0.035);
   this->declare_parameter<double>("GRAVITY_OFFSET_ROLL", 0.0);
   this->declare_parameter<std::string>("MOTION_PATH", "/motion/grip.yaml");
+  this->declare_parameter<bool>("DEBUG_VISUALIZATION", false);
 
   // IK MODULE INITIALIZE
   ik_ = std::make_shared<IKModule>(urdf_path, srdf_path, "base_link", "ee_link_1");
-  this->getParamsFromRos();               // 파라미터 로드   >> 위치 수정 X
+  this->getParamsFromRos();                       // 파라미터 로드   >> 위치 수정 X
   q_current_ = ik_->initialConfiguration();       // 시드 자세
 
   // MOTION EDITOR INITIALIZE
@@ -60,6 +61,10 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
   pub_ctrl_flg_   = create_publisher<std_msgs::msg::Bool>(
     "/mani2master", 10);              // CONTROL FLAG
 
+  if(debug_mode_) {
+    pub_com_marker_ = create_publisher<visualization_msgs::msg::Marker>(
+      "/com_marker", 10);
+  }
   if (mode_ == ControlMode::Auto)
   {
     RCLCPP_INFO(get_logger(), "Auto control mode: transforming /ee_target_position from camera frame to base_link frame.");
@@ -67,7 +72,6 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
     if(debug_mode_)
     {
       RCLCPP_WARN(get_logger(), "Debug TF enabled: subscribing to /vision topic.");
-      std::cout << "Debug TF enabled: subscribing to /vision topic." << std::endl;
       vision_sub_ = create_subscription<intelligent_humanoid_interfaces::msg::Vision2MasterMsg>(
         "/vision", 10,
         std::bind(&GripperMainNode::onVision, this, _1));
@@ -81,13 +85,13 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
     }
 
     tilt_sub_ = create_subscription<dynamixel_rdk_msgs::msg::DynamixelMsgs>(
-      "/master/pan_tilt", 10,
+      "/pan_dxl", 10,
       [this](const dynamixel_rdk_msgs::msg::DynamixelMsgs::SharedPtr msg)
       {
-        tilt_angle = msg->goal_position; // rad
+        tilt_angle = msg->goal_position * M_PI / 180.0; // degree to rad
       });
   }
-  else  //  Teleop 모드 >> display.launch.py
+  else  //  Teleop 모드
   {
     RCLCPP_INFO(get_logger(), "Teleop mode: using /ee_target_position as-is (base_link frame).");
 
@@ -99,11 +103,10 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
       "/telop_cmd_load", 10,
       [this](const std_msgs::msg::Bool::SharedPtr msg)
       {
-        if (msg->data) {
+        if (msg->data)
+        {
           RCLCPP_INFO(get_logger(), "Loading parameters from ROS parameters...");
           getParamsFromRos();
-          (void)this->set_parameter(rclcpp::Parameter("REF_NAME", "grip_offset"));
-          ik_->initialConfiguration();
         }
       });
   }
@@ -124,28 +127,27 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
         pub_ee_current_->publish(ee_msg);
       }
 
-      // joint_states 퍼블리시 (RVIZ2 / TF2)
+      // Joint State msg initialize
       sensor_msgs::msg::JointState js;
       js.header.stamp = now();
       js.name = {"rotate_torso", "rotate_1", "rotate_3", "rotate_5", "rotate_tilt"};
       js.position.reserve(q_current_.size());
-      for (int i = 0; i < q_current_.size() - 1; ++i) js.position.push_back(q_current_[i]);
-      js.position.push_back(tilt_angle);
-      pub_joints_->publish(js);
+
+      if(debug_visualization_)
+      {
+        // 512 state for debug
+        for (int i = 0; i < q_current_.size() - 1; ++i) js.position.push_back(0.0);
+        js.position.push_back(tilt_angle);
+        pub_joints_->publish(js);
+      }
+      else
+      {
+        for (int i = 0; i < q_current_.size() - 1; ++i) js.position.push_back(q_current_[i]);
+        js.position.push_back(tilt_angle);
+        pub_joints_->publish(js);
+      }
     }
   );
-
-// test bindTargetToMotion
-  if(debug_mode_) {
-    RCLCPP_WARN(get_logger(), "Debug TF enabled: subscribing to /vision topic.");
-    std::shared_ptr<geometry_msgs::msg::Point> msg;
-    msg = std::make_shared<geometry_msgs::msg::Point>();
-    msg->x = 0.2818;
-    msg->y = -0.2022;
-    msg->z = 0.0067;
-    this->bindTragetToMotion(msg, 3); // 초기 포즈 바인딩
-  }
-
   RCLCPP_INFO(get_logger(), "GripperMainNode ready. Waiting for /ee_target_position ...");
 }
 
@@ -167,49 +169,96 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
     RCLCPP_ERROR(get_logger(), "onMasterRequest: tf_buffer_ is null (did you construct it and keep a member TransformListener alive?)");
     return;
   }
-  if(!is_master_request) {
+
+  if(!is_master_request)
+  {
     RCLCPP_INFO(get_logger(), "onMasterRequest: Received target: x=%.3f, y=%.3f, z=%.3f",
                 msg->x, msg->y, msg->z);
     is_master_request = true;
   }
-  else {
+  else
+  {
     RCLCPP_WARN(get_logger(), "onMasterRequest: Previous request is still being processed. Ignoring this request.");
     return; // 이전 요청이 아직 처리 중이면 무시
   }
 
-  // TF 변환 수행
-  geometry_msgs::msg::PointStamped p2b_input;
-  p2b_input.header.frame_id = camera_frame_;
-  p2b_input.header.stamp    = this->now();
+  geometry_msgs::msg::PointStamped in_eye;
+  in_eye.header.frame_id = camera_frame_;
+  in_eye.header.stamp    = this->now();
 
-  p2b_input.point.x = 0.001 * msg->x;
-  p2b_input.point.y = 0.001 * msg->y;
-  p2b_input.point.z = 0.001 * msg->z;
+  // mm to m, camera frame to eye frame 변환
+  in_eye.point.x =  0.001 * msg->z;
+  in_eye.point.y = -0.001 * msg->x;
+  in_eye.point.z = -0.001 * msg->y;
 
-  geometry_msgs::msg::PointStamped p2b_output;
-  if (!transformPointToBase(p2b_input, p2b_output))
+  geometry_msgs::msg::PointStamped out_base;
+  if (!transformPointToBase(in_eye, out_base))
   {
     return;
   }
   auto target_pos = std::make_shared<geometry_msgs::msg::Point>();
-  target_pos->x = p2b_output.point.x;
-  target_pos->y = p2b_output.point.y;
-  target_pos->z = p2b_output.point.z;
+  target_pos->x = out_base.point.x;
+  target_pos->y = out_base.point.y;
+  target_pos->z = out_base.point.z;
 
   auto interp_pos = std::make_shared<geometry_msgs::msg::Point>();
   // 중력 방향 벡터 기준 waypoint_D 지점에 경유점 생성
+
   Eigen::Vector3d dir = {waypoint_d * sin(gravity_offset_roll), waypoint_d * cos(gravity_offset_roll), 0.0};
   interp_pos->x = target_pos->x + dir.x();
   interp_pos->y = target_pos->y + dir.y();
   interp_pos->z = target_pos->z + dir.z();
 
-  bindTragetToMotion(interp_pos, 1); // 경유점
-  bindTragetToMotion(target_pos, 2); // 목표점
+  bindTargetToMotion(interp_pos, 2, "waypoint_offset"); // 접근 포즈 + 그리퍼 개발
+  bindTargetToMotion(target_pos, 3, "target_offset");   // 타겟 지점 + 그리퍼 개방
+  bindTargetToMotion(target_pos, 4, "target_offset");   // 경유점   + 그리퍼 닫힘
+  bindTargetToMotion(interp_pos, 5, "waypoint_offset"); // 경유점  + 그리퍼 닫힘
+
+  is_master_request = false;
+  std_msgs::msg::Bool ctrl_flg;
+  ctrl_flg.data = true;
+  pub_ctrl_flg_->publish(ctrl_flg);
+  RCLCPP_INFO(get_logger(), "onMasterRequest: Published control flag to /mani2master.");
+  RCLCPP_INFO(get_logger(), "onMasterRequest: Processed target: x=%.3f, y=%.3f, z=%.3f",
+              target_pos->x, target_pos->y, target_pos->z);
+  RCLCPP_INFO(get_logger(), "onMasterRequest: Interpolated waypoint: x=%.3f, y=%.3f, z=%.3f",
+              interp_pos->x, interp_pos->y, interp_pos->z);
+}
+
+void GripperMainNode::pubBallMarker(const Eigen::Vector3d& com)
+{
+  if (!pub_com_marker_) return;
+
+  visualization_msgs::msg::Marker marker;
+  marker.header.frame_id = base_frame_;
+  marker.header.stamp = this->now();
+  marker.ns = "COM";
+  marker.id = 0;
+  marker.type = visualization_msgs::msg::Marker::SPHERE;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.pose.position.x = com.x();
+  marker.pose.position.y = com.y();
+  marker.pose.position.z = com.z();
+  marker.pose.orientation.x = 0.0;
+  marker.pose.orientation.y = 0.0;
+  marker.pose.orientation.z = 0.0;
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x = 0.05;
+  marker.scale.y = 0.05;
+  marker.scale.z = 0.05;
+  marker.color.r = 1.0f;
+  marker.color.g = 0.1f;
+  marker.color.b = 0.1f;
+  marker.color.a = 0.9f;
+  marker.lifetime = rclcpp::Duration(0, 0); // 지속
+
+  pub_com_marker_->publish(marker);
 }
 
 void GripperMainNode::onVision(const intelligent_humanoid_interfaces::msg::Vision2MasterMsg::SharedPtr msg)
 {
-  if (!msg) {
+  if (!msg)
+  {
     RCLCPP_ERROR(get_logger(), "onVision: received null msg");
     return;
   }
@@ -229,19 +278,48 @@ void GripperMainNode::onVision(const intelligent_humanoid_interfaces::msg::Visio
   in_eye.header.frame_id = camera_frame_;
   in_eye.header.stamp    = this->now();
 
-  in_eye.point.x = 0.001 * msg->ball_cam_x;
-  in_eye.point.y = 0.001 * msg->ball_cam_y;
-  in_eye.point.z = 0.001 * msg->ball_cam_z;
+  in_eye.point.x =  0.001 * msg->ball_cam_z;
+  in_eye.point.y = -0.001 * msg->ball_cam_x;
+  in_eye.point.z = -0.001 * msg->ball_cam_y;
 
   geometry_msgs::msg::PointStamped out_base;
-  if (!transformPointToBase(in_eye, out_base)) {
+  bool tf_status_flag = transformPointToBase(in_eye, out_base);
+
+  if (!tf_status_flag)
+  {
+    RCLCPP_ERROR(get_logger(), "onVision: transformPointToBase failed");
     return;
   }
+  else
+  {
+    RCLCPP_INFO(get_logger(), "onVision: IN EYE target: x=%.3f, y=%.3f, z=%.3f",
+                in_eye.point.x, in_eye.point.y, in_eye.point.z);
+    RCLCPP_INFO(get_logger(), "onVision: Transformed target: x=%.3f, y=%.3f, z=%.3f",
+                out_base.point.x, out_base.point.y, out_base.point.z);
+  }
+
+  // 현재 YAW 기준으로 base link Frame에서 World Frame으로 좌표 변환
+  Eigen::Vector3d pB(out_base.point.x, out_base.point.y, out_base.point.z);
+  Eigen::Vector3d t_pivot(0.0, 0.0, 0.0);
+
+  const double yaw = q_current_[0];
+  const double c = std::cos(-yaw);
+  const double s = std::sin(-yaw);
+
+  Eigen::Matrix3d R;
+  R << c, -s, 0,
+      s,  c, 0,
+      0,  0, 1;
+
+  Eigen::Vector3d pW0 = R * pB;
 
   auto target = std::make_shared<geometry_msgs::msg::Point>();
-  target->x = out_base.point.x;
-  target->y = out_base.point.y;
-  target->z = out_base.point.z;
+  target->x = pW0.x();
+  target->y = pW0.y();
+  target->z = pW0.z();
+  Eigen::Vector3d ball_pos(target->x, target->y, target->z);
+
+  pubBallMarker(ball_pos);
   target_cmd_callback(target);
 }
 
@@ -283,7 +361,6 @@ bool GripperMainNode::transformPointToBase(const geometry_msgs::msg::PointStampe
     RCLCPP_ERROR(get_logger(), "doTransform failed: %s", e.what());
     return false;
   }
-
   return true;
 }
 
@@ -297,6 +374,15 @@ void GripperMainNode::target_cmd_callback(const geometry_msgs::msg::Point::Share
   pinocchio::SE3 M_des(R_des, target);
   bool ok = ik_->computeIKPrioritySE3(M_des, q_current_, /*tilt_only=*/false);
 
+  if(!ok)
+  {
+    ok = ik_->computeIKPosition(target, q_current_);
+    if(debug_mode_)
+    {
+      RCLCPP_WARN(get_logger(), "[MN] controlling by computeIKPosition");
+    }
+  }
+
   // Self-collision 체크
   bool in_collision = ik_->checkSelfCollision(q_current_);
   std_msgs::msg::Bool cmsg;
@@ -309,7 +395,7 @@ void GripperMainNode::target_cmd_callback(const geometry_msgs::msg::Point::Share
 
   if (!ok)
   {
-    RCLCPP_WARN(get_logger(), "[IK] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
+    RCLCPP_ERROR(get_logger(), "[IK] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
     return;
   }
   else
@@ -319,23 +405,20 @@ void GripperMainNode::target_cmd_callback(const geometry_msgs::msg::Point::Share
 }
 
 // ===================== called by main sequence =====================
-void GripperMainNode::bindTragetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num)
+void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num,
+                                         const std::string& reference_name)
 {
-  /*
-    TODO : SRDF REF POSE (WAY POINT) 추가 -> 점대점 ik 수행 후 YAML EDIT과 연동
-  */
-
   if (!msg)
   {
-    RCLCPP_ERROR(get_logger(), "bindTragetToMotion: received null msg");
+    RCLCPP_ERROR(get_logger(), "bindTargetToMotion: received null msg");
     return;
   }
 
-  // SRDF REF POSE 로드
-  std::string step_name = "step_" + std::to_string(step_num);
-  this->set_parameter(rclcpp::Parameter("REF_NAME", step_name));
-  ik_->initialConfiguration();
+  // load reference configuration
+  this->set_parameter(rclcpp::Parameter("REF_NAME", reference_name));
+  q_current_ = ik_->initialConfiguration();
 
+  // compute IK SE3
   Eigen::Vector3d target(msg->x, msg->y, msg->z);
   const Eigen::Matrix3d R_cur = ik_->currentEEPose(q_current_).rotation();
   Eigen::Matrix3d R_des;
@@ -343,12 +426,21 @@ void GripperMainNode::bindTragetToMotion(const geometry_msgs::msg::Point::Shared
   pinocchio::SE3 M_des(R_des, target);
   bool ok = ik_->computeIKPrioritySE3(M_des, q_current_, /*tilt_only=*/false);
 
+  // compute IK Position
+  if(!ok)
+  {
+    ok = ik_->computeIKPosition(target, q_current_);
+    if(debug_mode_)
+    {
+      RCLCPP_WARN(get_logger(), "[MN] controlling by computeIKPosition");
+    }
+  }
+
   // Self-collision 체크
   bool in_collision = ik_->checkSelfCollision(q_current_);
   std_msgs::msg::Bool cmsg;
   cmsg.data = in_collision;
   pub_collision_->publish(cmsg);
-
 
   if (in_collision)
   {
@@ -374,6 +466,7 @@ void GripperMainNode::bindTragetToMotion(const geometry_msgs::msg::Point::Shared
   jpm["rotate_4"]     = -1.0 * q_current_[3];
   jpm["rotate_5"]     = q_current_[3];
 
+  std::string step_name = std::to_string(step_num);
   motion_editor_->editByStepAndMap(step_name, jpm);
   motion_editor_->saveToFile(yaml_path);
   RCLCPP_INFO(get_logger(), "[MN] MotionEditor updated step '%s' with new joint positions.", step_name.c_str());
@@ -403,6 +496,7 @@ void GripperMainNode::getParamsFromRos()
   this->get_parameter("WAYPOINT_D", waypoint_d);
   this->get_parameter("GRAVITY_OFFSET_ROLL", gravity_offset_roll);
   this->get_parameter("MOTION_PATH", motion_path);
+  this->get_parameter("DEBUG_VISUALIZATION", debug_visualization_);
 
   ik_->setParams(params_);
 
@@ -430,9 +524,11 @@ void GripperMainNode::getParamsFromRos()
     RCLCPP_INFO(get_logger(), "WAYPOINT_D: %.6f", waypoint_d);
     RCLCPP_INFO(get_logger(), "GRAVITY_OFFSET_ROLL: %.3f", gravity_offset_roll);
     RCLCPP_INFO(get_logger(), "MOTION_PATH: %s", motion_path.c_str());
+    RCLCPP_INFO(get_logger(), "DEBUG_VISUALIZATION: %s", debug_visualization_ ? "true" : "false");
     RCLCPP_INFO(get_logger(), "==================");
   }
-  else {
+  else
+  {
     RCLCPP_INFO(get_logger(), "Parameters loaded.");
   }
 }

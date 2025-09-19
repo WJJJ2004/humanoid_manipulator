@@ -82,6 +82,7 @@ public:
   pinocchio::SE3 makeTiltOnlyTarget(const Eigen::Matrix3d& R_current,
                                     const Eigen::Vector3d& target_p,
                                     const Eigen::Vector3d& z_target = Eigen::Vector3d(0,0,-1));
+  void printSRDFStatus();
 private:
   // 내부 헬퍼
   void clampToLimits(Eigen::VectorXd& q) const;

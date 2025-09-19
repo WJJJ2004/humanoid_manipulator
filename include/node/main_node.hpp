@@ -8,6 +8,7 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <Eigen/Dense>
+#include <visualization_msgs/msg/marker.hpp>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
@@ -42,7 +43,10 @@ private:
   ControlMode mode_;
   bool is_master_request = false;   // master request 성공 후 false
 
+  bool debug_visualization_ = false;
   rclcpp::TimerBase::SharedPtr timer_pub;
+
+  void pubBallMarker(const Eigen::Vector3d& com);
 
   rclcpp::Subscription<geometry_msgs::msg::Point32>::SharedPtr sub_master_request_;
   rclcpp::Subscription<intelligent_humanoid_interfaces::msg::Vision2MasterMsg>::SharedPtr vision_sub_;
@@ -54,7 +58,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pub_ctrl_flg_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_joints_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pub_collision_;
-
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr pub_com_marker_;
   // TF 관련
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -74,7 +78,7 @@ private:
   void onMasterRequest(const geometry_msgs::msg::Point32::SharedPtr msg);
   void onVision(const intelligent_humanoid_interfaces::msg::Vision2MasterMsg::SharedPtr msg);
   void target_cmd_callback(const geometry_msgs::msg::Point::SharedPtr msg);
-  void bindTragetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num);
+  void bindTargetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num, const std::string& reference_name);
   void getParamsFromRos();
 
   std::shared_ptr<MotionEditor> motion_editor_;

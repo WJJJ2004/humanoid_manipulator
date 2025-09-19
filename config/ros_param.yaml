@@ -1,23 +1,24 @@
 gripper_main_node:
   ros__parameters:
-    MAX_ITERATIONS: 150         # Maximum number of iterations for optimization
+    MAX_ITERATIONS: 200         # Maximum number of iterations for optimization
     POSITION_TOLERANCE: 0.0015  # Tolerance for position convergence (meters)
     SE3_TOLERANCE: 0.05         # Tolerance for SE3 convergence (meters)
     ALPHA: 0.2                  # step scaling (0.0 to 1.0)
     LAMBDA: 0.05                # LM damping factor
-    STEP_MAX: 0.1313            # angular velocity clamping (radians/step)
+    STEP_MAX: 0.1               # angular velocity clamping (radians/step)
     USE_REFERENCE: true         # Use reference flag
-    REF_NAME: "gravity_offset"  # SRDF inner key: EDIT STRUCT INIT VALUE
+    REF_NAME: "waypoint_offset"  # SRDF inner key: EDIT STRUCT INIT VALUE
     IK_TILT_ONLY: false         # true for z-align for computeIKPrioritySE3
     YAW_WEIGHT: 0.0
-    ROLL_WEIGHT: 0.0
-    PITCH_WEIGHT: 0.0
+    ROLL_WEIGHT: 0.2
+    PITCH_WEIGHT: 0.2
     BASE_FRAME: "base_link"
     CAMERA_FRAME: "eye_1"
     USE_LATEST_TF: true
     TF_TIMEOUT_SEC: 0.1
     TF_THROTTLE_MS: 2000
     DEBUG_TF: true
-    WAYPOINT_D: 0.035
+    WAYPOINT_D: 0.02               # waypoint distance (meters)
     GRAVITY_OFFSET_ROLL: 0.0
-    MOTION_PATH: "/motion/ball2.yaml"
+    MOTION_PATH: "/motion/ball3.yaml"
+    DEBUG_VISUALIZATION: false

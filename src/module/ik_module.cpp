@@ -35,35 +35,76 @@ IKModule::IKModule(const std::string& urdf_path,
   }
   ee_frame_id_ = model_.getFrameId(ee_link_name_);
 
-  std::cout << "[IK] #collisionObjects=" << collision_model_.geometryObjects.size()
-          << ", #collisionPairs=" << collision_model_.collisionPairs.size() << std::endl;
-
   lambda_sqred_ = params_.lambda * params_.lambda;  // LM 감쇠 파라미터 제곱
 
-  // 초기 자세 설정
-  se3 = currentEEPose(initialConfiguration());
-
-  std::cout << "\033[1;31m" <<"[IK] initial EE pose: " << std::endl;
-  std::cout << se3.translation().transpose() << std::endl;
-  std::cout << se3.rotation() << "\033[0m" <<std::endl;
+  printSRDFStatus();
 }
 
 /* ===========================
  *       Public Methods
  * =========================== */
 
+void IKModule::printSRDFStatus()
+{
+  std::cout << "\033[1;32m" << "[IK] Printing SRDF Status ..." << std::endl;
+  std::cout << "Reference config count = " << model_.referenceConfigurations.size() << std::endl;
+
+  std::cout << "[IK] #collisionObjects=" << collision_model_.geometryObjects.size()
+            << ", #collisionPairs=" << collision_model_.collisionPairs.size() << std::endl;
+  std::cout << "------------------------" << std::endl;
+
+  std::vector<pinocchio::SE3> ee_poses;
+
+  for (const auto& ref : model_.referenceConfigurations)
+  {
+    const std::string& name = ref.first;
+    const Eigen::VectorXd& q = ref.second;
+
+    // temp FK
+    pinocchio::forwardKinematics(model_, data_, q);
+    pinocchio::updateFramePlacements(model_, data_);
+    pinocchio::SE3 ee_pose = data_.oMf[ee_frame_id_];
+
+    ee_poses.push_back(ee_pose);
+
+    std::cout << "Reference config name: " << name << std::endl;
+    std::cout << "[IK]   EE position: " << ee_pose.translation().transpose() << std::endl;
+    std::cout << "[IK]   EE orientation:\n" << ee_pose.rotation() << std::endl;
+    std::cout << "------------------------" << std::endl;
+  }
+
+  if (ee_poses.size() == 2)
+  {
+    Eigen::Vector3d dp = ee_poses[1].translation() - ee_poses[0].translation();
+    Eigen::Matrix3d dR = ee_poses[1].rotation().transpose() * ee_poses[0].rotation();
+    Eigen::Vector3d dtheta = pinocchio::log3(dR); // 회전 오차 (축각 표현)
+
+    std::cout << "[IK] Reference EE pose difference (0 vs 1):\n";
+    std::cout << "delta pos (m): " << std::endl;
+    std::cout << dp.transpose() << std::endl;
+    std::cout << "delta ori (log3): " << std::endl;
+    std::cout << dtheta.transpose() << std::endl;
+  }
+  else
+  {
+    std::cout << "[IK] Not exactly 2 reference configurations, skipping difference check." << std::endl;
+  }
+  std::cout << "\033[0m";
+}
+
 Eigen::VectorXd IKModule::initialConfiguration() const
 {
-  if (params_.use_ref_home && model_.referenceConfigurations.count(params_.ref_name)) // SRDF ref가 있으면 + Params table에서 Flag ON >> SRDF ref를 offset pose로 사용
+  if (params_.use_ref_home && (model_.referenceConfigurations.count(params_.ref_name) > 0))
   {
-    std::cout << "[IK] Using SRDF reference configuration: " << params_.ref_name << std::endl;
+    std::cout << "\033[1;32m" << std::endl;
+    std::cout << "[IK] Using SRDF reference configuration: " << params_.ref_name << "\033[0m" << std::endl;
     return model_.referenceConfigurations.at(params_.ref_name);
   }
   else
   {
     std::cout << "\033[1;31m" << "[IK] No SRDF reference configuration found, using neutral pose." << std::endl;
-    std::cout << "[IK] No SRDF reference configuration found, using neutral pose." << std::endl;
     std::cout << "[IK] SRDF reference name: " << params_.ref_name << std::endl;
+    std::cout << "[IK] SRDF reference count: " << model_.referenceConfigurations.size() << std::endl;
     std::cout << "[IK] SRDF use_ref_home: " << (params_.use_ref_home ? "true" : "false") << "\033[0m" << std::endl;
     return pinocchio::neutral(model_);   // SRDF ref가 없으면 neutral pose(중앙값 0 rad)을 offset pose로 사용
   }
@@ -314,6 +355,5 @@ void IKModule::clampToLimits(Eigen::VectorXd& q) const
   }
 }
 }
-
 
 // namespace SRCIRC2025_HUMANOID_LOCOMOTION

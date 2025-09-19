@@ -289,7 +289,7 @@
     <limit effort="100.0" lower="-3.1415" upper="3.1415" velocity="1.0"/>
   </joint>
   <joint name="rotate_3" type="revolute">
-    <origin rpy="0 0 0" xyz="-0.02147 -0.0325 -0.025"/>
+    <origin rpy="1.5708 0 0" xyz="-0.02147 -0.0325 -0.025"/>
     <parent link="shoulder_1"/>
     <child link="upperarm_1"/>
     <axis xyz="-1.0 0.0 0.0"/>
@@ -311,7 +311,7 @@
     <origin rpy="0 0 0" xyz="0.023041 0.021316 0.14636"/>
     <parent link="torso_1"/>
     <child link="Head_1"/>
-    <axis xyz="0.0 -1.0 -0.0"/>
-    <limit effort="100.0" lower="-2.225" upper="0.0" velocity="1.0"/>
+    <axis xyz="0.0 1.0 -0.0"/>
+    <limit effort="100.0" lower="0.0" upper="2.225" velocity="1.0"/>
   </joint>
 </robot>
