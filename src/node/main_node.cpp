@@ -7,9 +7,6 @@ namespace SRCIRC2025_HUMANOID_LOCOMOTION
 GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string& srdf_path, const std::string& AUTO_CTRL)
 : Node("gripper_main_node")
 {
-  // CONTROL MODE SET
-  mode_ = (AUTO_CTRL == "teleop") ? ControlMode::Teleop : ControlMode::Auto;
-
   // ROS PARAMETER
   this->declare_parameter<int>("MAX_ITERATIONS", 200);
   this->declare_parameter<double>("POSITION_TOLERANCE", 1e-4);
@@ -38,6 +35,31 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
   ik_ = std::make_shared<IKModule>(urdf_path, srdf_path, "base_link", "ee_link_1");
   this->getParamsFromRos();                       // 파라미터 로드   >> 위치 수정 X
   q_current_ = ik_->initialConfiguration();       // 시드 자세
+
+  // CONTROL MODE SET
+  if(AUTO_CTRL == "teleop" || AUTO_CTRL == "TELEOP" || AUTO_CTRL == "Teleop")
+  {
+    mode_ = ControlMode::Teleop;
+    debug_mode_ = false;
+    RCLCPP_INFO(get_logger(), "Control Mode: Teleop");
+  }
+  else if(AUTO_CTRL == "auto" || AUTO_CTRL == "AUTO" || AUTO_CTRL == "Auto")
+  {
+    mode_ = ControlMode::Auto;
+    debug_mode_ = false;
+    RCLCPP_INFO(get_logger(), "Control Mode: Auto");
+  }
+  else if(AUTO_CTRL == "debug" || AUTO_CTRL == "DEBUG" || AUTO_CTRL == "Debug")
+  {
+    mode_ = ControlMode::Auto;
+    debug_mode_ = true;
+    RCLCPP_INFO(get_logger(), "Control Mode: Auto (Debug TF enabled)");
+  }
+  else
+  {
+    mode_ = ControlMode::Teleop;
+    RCLCPP_ERROR(get_logger(), "Unknown control mode string '%s'. Defaulting to Teleop.", AUTO_CTRL.c_str());
+  }
 
   // MOTION EDITOR INITIALIZE
   yaml_path = share_dir + motion_path;
@@ -192,19 +214,45 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
   in_eye.point.z = -0.001 * msg->y;
 
   geometry_msgs::msg::PointStamped out_base;
-  if (!transformPointToBase(in_eye, out_base))
+
+  bool tf_status_flag = transformPointToBase(in_eye, out_base);
+  if (!tf_status_flag)
   {
+    RCLCPP_ERROR(get_logger(), "onMasterRequest: transformPointToBase failed");
     return;
   }
+  else
+  {
+    RCLCPP_INFO(get_logger(), "onMasterRequest: IN EYE target: x=%.3f, y=%.3f, z=%.3f",
+                in_eye.point.x, in_eye.point.y, in_eye.point.z);
+    RCLCPP_INFO(get_logger(), "onMasterRequest: Transformed target: x=%.3f, y=%.3f, z=%.3f",
+                out_base.point.x, out_base.point.y, out_base.point.z);
+  }
+
+  // 현재 YAW 기준으로 base link Frame에서 World Frame으로 좌표 변환
+  Eigen::Vector3d pB(out_base.point.x, out_base.point.y, out_base.point.z);
+  Eigen::Vector3d t_pivot(0.0, 0.0, 0.0);
+
+  const double yaw = q_current_[0];
+  const double c = std::cos(-yaw);
+  const double s = std::sin(-yaw);
+
+  Eigen::Matrix3d R;
+  R << c, -s, 0,
+      s,  c, 0,
+      0,  0, 1;
+
+  Eigen::Vector3d pW0 = R * pB;
+
   auto target_pos = std::make_shared<geometry_msgs::msg::Point>();
-  target_pos->x = out_base.point.x;
-  target_pos->y = out_base.point.y;
-  target_pos->z = out_base.point.z;
+  target_pos->x = pW0.x();
+  target_pos->y = pW0.y();
+  target_pos->z = pW0.z();
 
   auto interp_pos = std::make_shared<geometry_msgs::msg::Point>();
   // 중력 방향 벡터 기준 waypoint_D 지점에 경유점 생성
 
-  Eigen::Vector3d dir = {waypoint_d * sin(gravity_offset_roll), waypoint_d * cos(gravity_offset_roll), 0.0};
+  Eigen::Vector3d dir = {waypoint_d * sin(gravity_offset_roll), 0.0, waypoint_d * cos(gravity_offset_roll)};
   interp_pos->x = target_pos->x + dir.x();
   interp_pos->y = target_pos->y + dir.y();
   interp_pos->z = target_pos->z + dir.z();
@@ -415,7 +463,8 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   }
 
   // load reference configuration
-  this->set_parameter(rclcpp::Parameter("REF_NAME", reference_name));
+  params_.ref_name = reference_name;
+  ik_->setParams(params_);
   q_current_ = ik_->initialConfiguration();
 
   // compute IK SE3

@@ -17,7 +17,7 @@ gripper_main_node:
     USE_LATEST_TF: true
     TF_TIMEOUT_SEC: 0.1
     TF_THROTTLE_MS: 2000
-    DEBUG_TF: true
+    DEBUG_TF: false
     WAYPOINT_D: 0.02               # waypoint distance (meters)
     GRAVITY_OFFSET_ROLL: 0.0
     MOTION_PATH: "/motion/ball3.yaml"
