@@ -37,22 +37,22 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-  <transmission name="rotate_5_tran">
-    <type>transmission_interface/SimpleTransmission</type>
-    <joint name="rotate_5">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-    </joint>
-    <actuator name="rotate_5_actr">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      <mechanicalReduction>1</mechanicalReduction>
-    </actuator>
-  </transmission>
   <transmission name="rotate_tilt_tran">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="rotate_tilt">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
     </joint>
     <actuator name="rotate_tilt_actr">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+  <transmission name="rotate_5_tran">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="rotate_5">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="rotate_5_actr">
       <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
@@ -91,6 +91,12 @@
     <mu2>0.2</mu2>
     <self_collide>true</self_collide>
   </gazebo>
+  <gazebo reference="Head_1">
+    <material>Gazebo/Silver</material>
+    <mu1>0.2</mu1>
+    <mu2>0.2</mu2>
+    <self_collide>true</self_collide>
+  </gazebo>
   <gazebo reference="forearm_1">
     <material>Gazebo/Silver</material>
     <mu1>0.2</mu1>
@@ -103,169 +109,163 @@
     <mu2>0.2</mu2>
     <self_collide>true</self_collide>
   </gazebo>
-  <gazebo reference="Head_1">
-    <material>Gazebo/Silver</material>
-    <mu1>0.2</mu1>
-    <mu2>0.2</mu2>
-    <self_collide>true</self_collide>
-  </gazebo>
   <link name="base_link">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.00014449795003466327 6.165012944592263e-14 -0.002480473640778647"/>
+      <origin rpy="0 0 0" xyz="0.00014449791335857415 1.0295259413262148e-07 -0.0024804736407786827"/>
       <mass value="0.03383387831439711"/>
-      <inertia ixx="7e-06" ixy="-0.0" ixz="0.0" iyy="7e-06" iyz="0.0" izz="1.4e-05"/>
+      <inertia ixx="7e-06" ixy="0.0" ixz="0.0" iyy="7e-06" iyz="0.0" izz="1.4e-05"/>
     </inertial>
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="silver"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
   <link name="torso_1">
     <inertial>
-      <origin rpy="0 0 0" xyz="-0.012877989784504057 -0.02595890872786548 0.09008175998722667"/>
+      <origin rpy="0 0 0" xyz="-0.012859491198833473 -0.025968077505632986 0.09008175998722645"/>
       <mass value="2.1937092001925604"/>
-      <inertia ixx="0.010947" ixy="0.000264" ixz="-0.001099" iyy="0.008342" iyz="0.000807" izz="0.007941"/>
+      <inertia ixx="0.010947" ixy="0.000266" ixz="-0.001099" iyy="0.008343" iyz="0.000807" izz="0.007941"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="-0.0 -0.0 -0.0"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/torso_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/torso_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="silver"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="-0.0 -0.0 -0.0"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/torso_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/torso_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
   <link name="eye_1">
     <inertial>
-      <origin rpy="0 0 0" xyz="5.505110954977244e-07 -4.6964214973910234e-07 0.00020929180740678066"/>
+      <origin rpy="0 0 0" xyz="5.588157334333876e-07 3.6210216278198537e-07 0.00020929180729215013"/>
       <mass value="1.902707681457099e-07"/>
       <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="-0.025041 -0.039279 -0.18636"/>
+      <origin rpy="0 0 0" xyz="-0.025013 -0.039296 -0.18636"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/eye_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/eye_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="silver"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="-0.025041 -0.039279 -0.18636"/>
+      <origin rpy="0 0 0" xyz="-0.025013 -0.039296 -0.18636"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/eye_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/eye_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
   <link name="shoulder_1">
     <inertial>
-      <origin rpy="0 0 0" xyz="-0.0008021063538195136 -0.01263269248673439 -0.002599544084532862"/>
+      <origin rpy="0 0 0" xyz="-0.0007928265132074144 -0.012632741596309643 -0.002599544084533001"/>
       <mass value="0.06721028329114603"/>
       <inertia ixx="1.7e-05" ixy="-0.0" ixz="-0.0" iyy="2.8e-05" iyz="-3e-06" izz="3.3e-05"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0.000708 0.093025 -0.10546"/>
+      <origin rpy="0 0 0" xyz="0.000642 0.093026 -0.10546"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/shoulder_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/shoulder_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="silver"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0.000708 0.093025 -0.10546"/>
+      <origin rpy="0 0 0" xyz="0.000642 0.093026 -0.10546"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/shoulder_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/shoulder_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
   <link name="upperarm_1">
     <inertial>
-      <origin rpy="0 0 0" xyz="0.020532400219094592 -0.07168950541218574 -8.737550710166686e-06"/>
+      <origin rpy="0 0 0" xyz="0.02058391290540538 -0.07167462782007442 -8.737550710402608e-06"/>
       <mass value="0.7964005518324352"/>
-      <inertia ixx="0.002858" ixy="2e-06" ixz="0.0" iyy="0.000163" iyz="1e-06" izz="0.002858"/>
+      <inertia ixx="0.002858" ixy="4e-06" ixz="-0.0" iyy="0.000163" iyz="1e-06" izz="0.002858"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0.022178 0.125525 -0.08046"/>
+      <origin rpy="0 0 0" xyz="0.022089 0.125541 -0.08046"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/upperarm_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/upperarm_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="silver"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0.022178 0.125525 -0.08046"/>
+      <origin rpy="0 0 0" xyz="0.022089 0.125541 -0.08046"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/upperarm_1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-  <link name="forearm_1">
-    <inertial>
-      <origin rpy="0 0 0" xyz="0.018319068322047685 -0.11944378738890721 -0.02034305937007909"/>
-      <mass value="1.088969578492718"/>
-      <inertia ixx="0.001507" ixy="0.000207" ixz="3e-06" iyy="0.000389" iyz="-2e-06" izz="0.001483"/>
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0.001628 0.268725 -0.100959"/>
-      <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/forearm_1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="silver"/>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0.001628 0.268725 -0.100959"/>
-      <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/forearm_1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-  <link name="ee_link_1">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-6.218104927793559e-07 1.652572509247552e-05 -0.00011133278533460855"/>
-      <mass value="1.9027076814554607e-07"/>
-      <inertia ixx="0.0" ixy="0.0" ixz="-0.0" iyy="0.0" iyz="-0.0" izz="0.0"/>
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="-0.002772 0.413548 -0.080544"/>
-      <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/ee_link_1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="silver"/>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="-0.002772 0.413548 -0.080544"/>
-      <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/ee_link_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/upperarm_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
   <link name="Head_1">
     <inertial>
-      <origin rpy="0 0 0" xyz="-0.013469787584827716 -0.015314559330600433 0.03527216999851682"/>
+      <origin rpy="0 0 0" xyz="-0.01345906594690515 -0.01532474151429016 0.03527216999861413"/>
       <mass value="0.6173958690072822"/>
-      <inertia ixx="0.00062" ixy="-9e-06" ixz="-2.1e-05" iyy="0.000263" iyz="-2.6e-05" izz="0.000484"/>
+      <inertia ixx="0.00062" ixy="-8e-06" ixz="-2.1e-05" iyy="0.000263" iyz="-2.6e-05" izz="0.000484"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="-0.023041 -0.021316 -0.14636"/>
+      <origin rpy="0 0 0" xyz="-0.023026 -0.021333 -0.14636"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/Head_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/Head_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="silver"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="-0.023041 -0.021316 -0.14636"/>
+      <origin rpy="0 0 0" xyz="-0.023026 -0.021333 -0.14636"/>
       <geometry>
-        <mesh filename="package://humanoid_manipulator/robot_model/meshes/Head_1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/Head_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="forearm_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.01942621915712284 -0.1088730759389151 -0.020309797850417033"/>
+      <mass value="0.7439602672633931"/>
+      <inertia ixx="0.001136" ixy="0.000233" ixz="3e-06" iyy="0.000306" iyz="-1e-06" izz="0.001159"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.001437 0.268726 -0.100959"/>
+      <geometry>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/forearm_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.001437 0.268726 -0.100959"/>
+      <geometry>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/forearm_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="ee_link_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-7.265875284585485e-07 -4.978615931738872e-07 0.00020935007448756593"/>
+      <mass value="1.902707681457099e-07"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.003081 0.433545 -0.080544"/>
+      <geometry>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/ee_link_1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.003081 0.433545 -0.080544"/>
+      <geometry>
+        <mesh filename="file:///home/lwj/colcon_ws/install/humanoid_mani_description/share/humanoid_mani_description/meshes/ee_link_1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -277,41 +277,41 @@
     <limit effort="100.0" lower="-3.1415" upper="3.1415" velocity="1.0"/>
   </joint>
   <joint name="rgb_dummy" type="fixed">
-    <origin rpy="0 0 0" xyz="0.002 0.017963 0.04"/>
+    <origin rpy="0 0 0" xyz="0.001987 0.017963 0.04"/>
     <parent link="Head_1"/>
     <child link="eye_1"/>
   </joint>
   <joint name="rotate_1" type="revolute">
-    <origin rpy="0 0 0" xyz="-0.000708 -0.093025 0.10546"/>
+    <origin rpy="0 0 0" xyz="-0.000642 -0.093026 0.10546"/>
     <parent link="torso_1"/>
     <child link="shoulder_1"/>
-    <axis xyz="0.0 -1.0 -0.0"/>
+    <axis xyz="0.000712 -1.0 -0.0"/>
     <limit effort="100.0" lower="-3.1415" upper="3.1415" velocity="1.0"/>
   </joint>
   <joint name="rotate_3" type="revolute">
-    <origin rpy="1.5708 0 0" xyz="-0.02147 -0.0325 -0.025"/>
+    <origin rpy="1.5708 0 0" xyz="-0.021447 -0.032515 -0.025"/>
     <parent link="shoulder_1"/>
     <child link="upperarm_1"/>
     <axis xyz="-1.0 0.0 0.0"/>
     <limit effort="100.0" lower="-1.5708" upper="1.5708" velocity="1.0"/>
   </joint>
+  <joint name="rotate_tilt" type="revolute">
+    <origin rpy="0 0 0" xyz="0.023026 0.021333 0.14636"/>
+    <parent link="torso_1"/>
+    <child link="Head_1"/>
+    <axis xyz="-0.000712 1.0 0.0"/>
+    <limit effort="100.0" lower="0.0" upper="2.225" velocity="1.0"/>
+  </joint>
   <joint name="rotate_5" type="revolute">
-    <origin rpy="0 0 0" xyz="0.02055 -0.1432 0.020499"/>
+    <origin rpy="0 0 0" xyz="0.020652 -0.143185 0.020499"/>
     <parent link="upperarm_1"/>
     <child link="forearm_1"/>
     <axis xyz="0.0 -7e-06 1.0"/>
     <limit effort="100.0" lower="-2.462" upper="2.4" velocity="1.0"/>
   </joint>
   <joint name="ee_dummy" type="fixed">
-    <origin rpy="0 0 0" xyz="0.0044 -0.144823 -0.020415"/>
+    <origin rpy="0 0 0" xyz="0.004518 -0.164819 -0.020415"/>
     <parent link="forearm_1"/>
     <child link="ee_link_1"/>
-  </joint>
-  <joint name="rotate_tilt" type="revolute">
-    <origin rpy="0 0 0" xyz="0.023041 0.021316 0.14636"/>
-    <parent link="torso_1"/>
-    <child link="Head_1"/>
-    <axis xyz="0.0 1.0 -0.0"/>
-    <limit effort="100.0" lower="0.0" upper="2.225" velocity="1.0"/>
   </joint>
 </robot>
