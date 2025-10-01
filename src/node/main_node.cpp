@@ -508,7 +508,7 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   // MOTION EDITOR 바인딩
   JointPosMap jpm;
   jpm["rotate_torso"] = q_current_[0];
-  jpm["rotate_0"]     = -1.0 * q_current_[1];
+  jpm["rotate_0"]     = q_current_[1];
   jpm["rotate_1"]     = q_current_[1];
   jpm["rotate_2"]     = -1.0 * q_current_[2];
   jpm["rotate_3"]     = q_current_[2];

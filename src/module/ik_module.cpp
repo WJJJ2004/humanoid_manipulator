@@ -37,7 +37,7 @@ IKModule::IKModule(const std::string& urdf_path,
 
   lambda_sqred_ = params_.lambda * params_.lambda;  // LM 감쇠 파라미터 제곱
 
-  printSRDFStatus();
+  // printSRDFStatus();
 }
 
 /* ===========================

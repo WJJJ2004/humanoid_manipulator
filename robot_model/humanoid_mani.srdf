@@ -22,29 +22,21 @@
     <disable_collisions link1="Head_1" link2="base_link" reason="Never"/>
     <disable_collisions link1="Head_1" link2="ee_link_1" reason="Never"/>
     <disable_collisions link1="Head_1" link2="eye_1" reason="Adjacent"/>
-    <disable_collisions link1="Head_1" link2="forearm_1" reason="Never"/>
     <disable_collisions link1="Head_1" link2="shoulder_1" reason="Never"/>
     <disable_collisions link1="Head_1" link2="torso_1" reason="Adjacent"/>
-    <disable_collisions link1="Head_1" link2="upperarm_1" reason="Never"/>
     <disable_collisions link1="base_link" link2="ee_link_1" reason="Never"/>
     <disable_collisions link1="base_link" link2="eye_1" reason="Never"/>
-    <disable_collisions link1="base_link" link2="forearm_1" reason="Never"/>
     <disable_collisions link1="base_link" link2="shoulder_1" reason="Never"/>
-    <disable_collisions link1="base_link" link2="torso_1" reason="Never"/>
-    <disable_collisions link1="base_link" link2="upperarm_1" reason="Never"/>
+    <disable_collisions link1="base_link" link2="torso_1" reason="Adjacent"/>
     <disable_collisions link1="ee_link_1" link2="eye_1" reason="Never"/>
     <disable_collisions link1="ee_link_1" link2="forearm_1" reason="Adjacent"/>
     <disable_collisions link1="ee_link_1" link2="shoulder_1" reason="Never"/>
-    <disable_collisions link1="ee_link_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="ee_link_1" link2="upperarm_1" reason="Never"/>
-    <disable_collisions link1="eye_1" link2="forearm_1" reason="Never"/>
     <disable_collisions link1="eye_1" link2="shoulder_1" reason="Never"/>
     <disable_collisions link1="eye_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="eye_1" link2="upperarm_1" reason="Never"/>
     <disable_collisions link1="forearm_1" link2="shoulder_1" reason="Never"/>
-    <disable_collisions link1="forearm_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="forearm_1" link2="upperarm_1" reason="Adjacent"/>
     <disable_collisions link1="shoulder_1" link2="torso_1" reason="Adjacent"/>
     <disable_collisions link1="shoulder_1" link2="upperarm_1" reason="Adjacent"/>
-    <disable_collisions link1="torso_1" link2="upperarm_1" reason="Never"/>
 </robot>
