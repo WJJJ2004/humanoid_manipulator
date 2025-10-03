@@ -61,6 +61,7 @@ public:
   // 파라미터 설정/조회
   void setParams(const Params& p) { params_ = p; lambda_sqred_ = p.lambda * p.lambda; }
   const Params& params() const { return params_; }
+  void setDebugIKMode(bool f) { debug_IKmode_ = f; }
 
   bool computeIKPosition(const Eigen::Vector3d& target_pos, Eigen::VectorXd& solution);
   bool computeIKSE3(const pinocchio::SE3& target_se3, Eigen::VectorXd& solution);
@@ -107,6 +108,8 @@ private:
   // 파라미터
   Params params_;
   double lambda_sqred_ = 0.0;  // 감쇠 파라미터 제곱 (LM-damped pseudo-inverse 용)
+
+  bool debug_IKmode_ = false;
 };
 
 }

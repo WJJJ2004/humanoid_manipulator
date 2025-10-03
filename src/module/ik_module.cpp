@@ -36,8 +36,6 @@ IKModule::IKModule(const std::string& urdf_path,
   ee_frame_id_ = model_.getFrameId(ee_link_name_);
 
   lambda_sqred_ = params_.lambda * params_.lambda;  // LM 감쇠 파라미터 제곱
-
-  // printSRDFStatus();
 }
 
 /* ===========================
@@ -132,6 +130,10 @@ bool IKModule::computeIKPosition(const Eigen::Vector3d& target_pos, Eigen::Vecto
 
     if (e.norm() < params_.pos_tol)
     {
+      if (debug_IKmode_)
+      {
+        std::cout << "\033[1;32m" << "[IK] computeIKPosition converged in " << it << " iterations. error norm: " << e.norm() << "\033[0m" << std::endl;
+      }
       return true;
     }
 

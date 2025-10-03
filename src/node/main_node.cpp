@@ -43,26 +43,34 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
   // CONTROL MODE SET
   if(AUTO_CTRL == "teleop")
   {
-    mode_ = ControlMode::Teleop;
-    debug_mode_ = false;
-    RCLCPP_INFO(get_logger(), "Control Mode: Teleop");
+    ctrl_mode_ = ControlMode::Teleop;
+    debug_mode_ = true;
+    RCLCPP_INFO(get_logger(), "Control Mode: Teleop (Direct control, Debug TF enabled)");
   }
   else if(AUTO_CTRL == "auto")
   {
-    mode_ = ControlMode::Auto;
+    ctrl_mode_ = ControlMode::Auto;
     debug_mode_ = false;
-    RCLCPP_INFO(get_logger(), "Control Mode: Auto");
+    RCLCPP_INFO(get_logger(), "Control Mode: Auto (Debug TF disabled)");
   }
   else if(AUTO_CTRL == "debug")
   {
-    mode_ = ControlMode::Auto;
+    ctrl_mode_ = ControlMode::Auto;
     debug_mode_ = true;
     RCLCPP_INFO(get_logger(), "Control Mode: Auto (Debug TF enabled)");
   }
   else
   {
-    mode_ = ControlMode::Teleop;
+    ctrl_mode_ = ControlMode::Teleop;
+    debug_mode_ = true;
     RCLCPP_ERROR(get_logger(), "Unknown control mode string '%s'. Defaulting to Teleop.", AUTO_CTRL.c_str());
+  }
+
+  // IK MODULE DEBUG MODE SET
+  ik_->setDebugIKMode(debug_mode_);
+  if (debug_mode_) {
+    RCLCPP_WARN(get_logger(), "Debug IK mode enabled: printing SRDF status.");
+    ik_->printSRDFStatus();
   }
 
   // MOTION EDITOR INITIALIZE
@@ -92,7 +100,7 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
     pub_com_marker_ = create_publisher<visualization_msgs::msg::Marker>(
       "/com_marker", 10);
   }
-  if (mode_ == ControlMode::Auto)
+  if (ctrl_mode_ == ControlMode::Auto)
   {
     RCLCPP_INFO(get_logger(), "Auto control mode: transforming /ee_target_position from camera frame to base_link frame.");
 
@@ -144,7 +152,7 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
     std::chrono::duration_cast<std::chrono::nanoseconds>(period),
     [this]()
     {
-      if (mode_ == ControlMode::Teleop)
+      if (ctrl_mode_ == ControlMode::Teleop)
       {
         const Eigen::Vector3d p = ik_->currentEEPose(q_current_).translation();
         geometry_msgs::msg::Point ee_msg;
@@ -252,7 +260,7 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
   auto target_pos = std::make_shared<geometry_msgs::msg::Point>();
   target_pos->x = pW0.x();
   target_pos->y = pW0.y();
-  target_pos->z = pW0.z();
+  target_pos->z = pW0.z() + 0.01; // 그리퍼 오프셋 보정
 
   auto interp_pos = std::make_shared<geometry_msgs::msg::Point>();
   // 중력 방향 벡터 기준 waypoint_D 지점에 경유점 생성
@@ -271,13 +279,14 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
     bindTargetToMotion(interp_pos, 5);   // 경유점 + 그리퍼 닫힘
   }
   catch (const std::exception& e) {
-    RCLCPP_ERROR(get_logger(), "onMasterRequest: bindTargetToMotion exception: %s", e.what());
+    RCLCPP_ERROR(get_logger(), "[OMR]: bindTargetToMotion exception: %s", e.what());
     is_master_request = false;
     ctrl_flg.data = false;
     pub_ctrl_flg_->publish(ctrl_flg);
     return;
   }
 
+  is_master_request = false;
   ctrl_flg.data = true;
   pub_ctrl_flg_->publish(ctrl_flg);
   RCLCPP_INFO(get_logger(), "onMasterRequest: Published control flag to /mani2master.");
@@ -471,8 +480,8 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
 {
   if (!msg)
   {
-    RCLCPP_ERROR(get_logger(), "bindTargetToMotion: received null msg");
-    return;
+    RCLCPP_ERROR(get_logger(), "[BT2M] received null msg");
+    throw std::runtime_error("[BT2M] received null msg");
   }
 
   // 최초 시드 자세 리셋
@@ -496,18 +505,18 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   if (in_collision)
   {
     pub_ctrl_flg_->publish(ctrl_msg);
-    RCLCPP_ERROR(get_logger(), "Self-collision detected.");
-    return;
+    RCLCPP_ERROR(get_logger(), "[BT2M] Self-collision detected.");
+    throw std::runtime_error("Self-collision detected. step_num=" + std::to_string(step_num));
   }
   if (!ok)
   {
     pub_ctrl_flg_->publish(ctrl_msg);
-    RCLCPP_ERROR(get_logger(), "[MN] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
-    return;
+    RCLCPP_ERROR(get_logger(), "[BT2M] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
+    throw std::runtime_error("IK failed. step_num=" + std::to_string(step_num));
   }
   else
   {
-    RCLCPP_INFO(get_logger(),"[MN] IK success target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
+    RCLCPP_INFO(get_logger(),"[BT2M] IK success  target=(%.3f, %.3f, %.3f) in step %d", msg->x, msg->y, msg->z , step_num);
   }
 
   // MOTION EDITOR 바인딩

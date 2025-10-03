@@ -40,7 +40,7 @@ private:
 
   double gravity_offset_roll = 0.0; // rad (음수값 기대)
   double waypoint_d = 0.035;
-  ControlMode mode_;
+  ControlMode ctrl_mode_;
   bool is_master_request = false;   // master request 성공 후 false
 
   bool debug_visualization_ = false;
