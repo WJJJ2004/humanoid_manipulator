@@ -78,7 +78,7 @@ private:
   void onMasterRequest(const geometry_msgs::msg::Point32::SharedPtr msg);
   void onVision(const intelligent_humanoid_interfaces::msg::Vision2MasterMsg::SharedPtr msg);
   void target_cmd_callback(const geometry_msgs::msg::Point::SharedPtr msg);
-  void bindTargetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num, const std::string& reference_name);
+  void bindTargetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num);
   void getParamsFromRos();
 
   std::shared_ptr<MotionEditor> motion_editor_;

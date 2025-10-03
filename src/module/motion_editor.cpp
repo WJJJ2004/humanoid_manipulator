@@ -27,6 +27,7 @@ MotionEditor::MotionEditor()
     {"rotate_3",      3},
     {"rotate_4",      4},
     {"rotate_5",      5},
+    {"gripper",       7},
   };
 }
 
@@ -101,9 +102,10 @@ void MotionEditor::editByStepAndMap(const std::string& step_name,
   put("rotate_2");
   put("rotate_3");
   put("rotate_5");
+  put("gripper");
 
   if (sub.empty()) return; // 바꿀게 없으면 조용히 반환
-  editJoints(step_name, sub, /*strict=*/false);
+  editJoints(step_name, sub, false);
 }
 
 void MotionEditor::editJoints(const std::string& step_name,

@@ -1,6 +1,10 @@
 #include "node/main_node.hpp"
 #include <iostream>
 
+#define GRIPPER_OPEN_RAD -0.98017690792001511
+#define GRIPPER_CLOSE_RAD 0.16022122533307867
+#define FIRST_STEP 2
+
 using std::placeholders::_1;
 namespace SRCIRC2025_HUMANOID_LOCOMOTION
 {
@@ -37,19 +41,19 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
   q_current_ = ik_->initialConfiguration();       // 시드 자세
 
   // CONTROL MODE SET
-  if(AUTO_CTRL == "teleop" || AUTO_CTRL == "TELEOP" || AUTO_CTRL == "Teleop")
+  if(AUTO_CTRL == "teleop")
   {
     mode_ = ControlMode::Teleop;
     debug_mode_ = false;
     RCLCPP_INFO(get_logger(), "Control Mode: Teleop");
   }
-  else if(AUTO_CTRL == "auto" || AUTO_CTRL == "AUTO" || AUTO_CTRL == "Auto")
+  else if(AUTO_CTRL == "auto")
   {
     mode_ = ControlMode::Auto;
     debug_mode_ = false;
     RCLCPP_INFO(get_logger(), "Control Mode: Auto");
   }
-  else if(AUTO_CTRL == "debug" || AUTO_CTRL == "DEBUG" || AUTO_CTRL == "Debug")
+  else if(AUTO_CTRL == "debug")
   {
     mode_ = ControlMode::Auto;
     debug_mode_ = true;
@@ -74,6 +78,7 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
   tf_buffer_   = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, true);
 
+  // PUSBLISHER & SUBSCRIBER
   pub_joints_     = create_publisher<sensor_msgs::msg::JointState>(
     "/joint_states", 10);             // RVIZ2
   pub_collision_  = create_publisher<std_msgs::msg::Bool>(
@@ -257,13 +262,22 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
   interp_pos->y = target_pos->y + dir.y();
   interp_pos->z = target_pos->z + dir.z();
 
-  bindTargetToMotion(interp_pos, 2, "waypoint_offset"); // 접근 포즈 + 그리퍼 개발
-  bindTargetToMotion(target_pos, 3, "target_offset");   // 타겟 지점 + 그리퍼 개방
-  bindTargetToMotion(target_pos, 4, "target_offset");   // 경유점   + 그리퍼 닫힘
-  bindTargetToMotion(interp_pos, 5, "waypoint_offset"); // 경유점  + 그리퍼 닫힘
-
-  is_master_request = false;
   std_msgs::msg::Bool ctrl_flg;
+
+  try {
+    bindTargetToMotion(interp_pos, 2);   // 접근 포즈 + 그리퍼 개발
+    bindTargetToMotion(target_pos, 3);   // 타겟 지점 + 그리퍼 개방
+    bindTargetToMotion(target_pos, 4);   // 경유점   + 그리퍼 닫힘
+    bindTargetToMotion(interp_pos, 5);   // 경유점 + 그리퍼 닫힘
+  }
+  catch (const std::exception& e) {
+    RCLCPP_ERROR(get_logger(), "onMasterRequest: bindTargetToMotion exception: %s", e.what());
+    is_master_request = false;
+    ctrl_flg.data = false;
+    pub_ctrl_flg_->publish(ctrl_flg);
+    return;
+  }
+
   ctrl_flg.data = true;
   pub_ctrl_flg_->publish(ctrl_flg);
   RCLCPP_INFO(get_logger(), "onMasterRequest: Published control flag to /mani2master.");
@@ -453,8 +467,7 @@ void GripperMainNode::target_cmd_callback(const geometry_msgs::msg::Point::Share
 }
 
 // ===================== called by main sequence =====================
-void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num,
-                                         const std::string& reference_name)
+void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::SharedPtr msg, int step_num)
 {
   if (!msg)
   {
@@ -462,42 +475,34 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
     return;
   }
 
-  // load reference configuration
-  params_.ref_name = reference_name;
-  ik_->setParams(params_);
-  q_current_ = ik_->initialConfiguration();
-
-  // compute IK SE3
-  Eigen::Vector3d target(msg->x, msg->y, msg->z);
-  const Eigen::Matrix3d R_cur = ik_->currentEEPose(q_current_).rotation();
-  Eigen::Matrix3d R_des;
-  ik_->buildTiltOnlyRotation(R_cur, R_des, Eigen::Vector3d(0,0,-1));
-  pinocchio::SE3 M_des(R_des, target);
-  bool ok = ik_->computeIKPrioritySE3(M_des, q_current_, /*tilt_only=*/false);
+  // 최초 시드 자세 리셋
+  if(step_num == FIRST_STEP)
+  {
+    params_.ref_name = "waypoint_offset";
+    ik_->setParams(params_);
+    q_current_ = ik_->initialConfiguration();
+  }
 
   // compute IK Position
-  if(!ok)
-  {
-    ok = ik_->computeIKPosition(target, q_current_);
-    if(debug_mode_)
-    {
-      RCLCPP_WARN(get_logger(), "[MN] controlling by computeIKPosition");
-    }
-  }
+  Eigen::Vector3d target(msg->x, msg->y, msg->z);
+  bool ok = ik_->computeIKPosition(target, q_current_);
 
   // Self-collision 체크
   bool in_collision = ik_->checkSelfCollision(q_current_);
-  std_msgs::msg::Bool cmsg;
-  cmsg.data = in_collision;
-  pub_collision_->publish(cmsg);
+
+  std_msgs::msg::Bool ctrl_msg;
+  ctrl_msg.data = false;
 
   if (in_collision)
   {
-    RCLCPP_WARN(get_logger(), "Self-collision detected.");
+    pub_ctrl_flg_->publish(ctrl_msg);
+    RCLCPP_ERROR(get_logger(), "Self-collision detected.");
+    return;
   }
   if (!ok)
   {
-    RCLCPP_WARN(get_logger(), "[MN] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
+    pub_ctrl_flg_->publish(ctrl_msg);
+    RCLCPP_ERROR(get_logger(), "[MN] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
     return;
   }
   else
@@ -514,6 +519,16 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   jpm["rotate_3"]     = q_current_[2];
   jpm["rotate_4"]     = -1.0 * q_current_[3];
   jpm["rotate_5"]     = q_current_[3];
+
+  // 그리퍼 조작 >> STEP_NUM 2, 5 : OPEN / STEP_NUM 3, 4 : CLOSE
+  if(step_num % 3 == 2 )
+  {
+    jpm["gripper"] = GRIPPER_OPEN_RAD;
+  }
+  else
+  {
+    jpm["gripper"] = GRIPPER_CLOSE_RAD;
+  }
 
   std::string step_name = std::to_string(step_num);
   motion_editor_->editByStepAndMap(step_name, jpm);
