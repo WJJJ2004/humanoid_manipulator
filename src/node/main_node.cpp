@@ -2,7 +2,7 @@
 #include <iostream>
 
 #define GRIPPER_OPEN_RAD -0.98017690792001511
-#define GRIPPER_CLOSE_RAD 0.16022122533307867
+#define GRIPPER_CLOSE_RAD 0.24022122533307867
 #define FIRST_STEP 2
 
 using std::placeholders::_1;
@@ -34,6 +34,7 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
   this->declare_parameter<double>("GRAVITY_OFFSET_ROLL", 0.0);
   this->declare_parameter<std::string>("MOTION_PATH", "/motion/grip.yaml");
   this->declare_parameter<bool>("DEBUG_VISUALIZATION", false);
+  this->declare_parameter<double>("TARGETPOINT_D", 0.0);
 
   // IK MODULE INITIALIZE
   ik_ = std::make_shared<IKModule>(urdf_path, srdf_path, "base_link", "ee_link_1");
@@ -257,18 +258,22 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
 
   Eigen::Vector3d pW0 = R * pB;
 
+  // 중력 방향 벡터 계산 (롤 오프셋 적용)
+  Eigen::Vector3d unit_vertical_vector = {-1.0 * cos(gravity_offset_roll), 0.0, sin(gravity_offset_roll)};
+  Eigen::Vector3d target_dir = unit_vertical_vector * targetpoint_d;
+  Eigen::Vector3d interp_dir = unit_vertical_vector * waypoint_d;
+
+
   auto target_pos = std::make_shared<geometry_msgs::msg::Point>();
-  target_pos->x = pW0.x();
-  target_pos->y = pW0.y();
-  target_pos->z = pW0.z() + 0.01; // 그리퍼 오프셋 보정
+  target_pos->x = pW0.x() + target_dir.x();
+  target_pos->y = pW0.y() + target_dir.y();
+  target_pos->z = pW0.z() + target_dir.z();
 
   auto interp_pos = std::make_shared<geometry_msgs::msg::Point>();
   // 중력 방향 벡터 기준 waypoint_D 지점에 경유점 생성
-
-  Eigen::Vector3d dir = {waypoint_d * sin(gravity_offset_roll), 0.0, waypoint_d * cos(gravity_offset_roll)};
-  interp_pos->x = target_pos->x + dir.x();
-  interp_pos->y = target_pos->y + dir.y();
-  interp_pos->z = target_pos->z + dir.z();
+  interp_pos->x = pW0.x() + interp_dir.x();
+  interp_pos->y = pW0.y() + interp_dir.y();
+  interp_pos->z = pW0.z() + interp_dir.z();
 
   std_msgs::msg::Bool ctrl_flg;
 
@@ -570,6 +575,7 @@ void GripperMainNode::getParamsFromRos()
   this->get_parameter("GRAVITY_OFFSET_ROLL", gravity_offset_roll);
   this->get_parameter("MOTION_PATH", motion_path);
   this->get_parameter("DEBUG_VISUALIZATION", debug_visualization_);
+  this->get_parameter("TARGETPOINT_D", targetpoint_d);
 
   ik_->setParams(params_);
 
@@ -598,6 +604,7 @@ void GripperMainNode::getParamsFromRos()
     RCLCPP_INFO(get_logger(), "GRAVITY_OFFSET_ROLL: %.3f", gravity_offset_roll);
     RCLCPP_INFO(get_logger(), "MOTION_PATH: %s", motion_path.c_str());
     RCLCPP_INFO(get_logger(), "DEBUG_VISUALIZATION: %s", debug_visualization_ ? "true" : "false");
+    RCLCPP_INFO(get_logger(), "TARGETPOINT_D: %.6f", targetpoint_d);
     RCLCPP_INFO(get_logger(), "==================");
   }
   else

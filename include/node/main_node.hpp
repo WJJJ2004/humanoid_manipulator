@@ -39,7 +39,8 @@ private:
   std::string yaml_path;
 
   double gravity_offset_roll = 0.0; // rad (음수값 기대)
-  double waypoint_d = 0.035;
+  double waypoint_d = 0.035;       // m (중력 방향 벡터 기준 경유점 거리)
+  double targetpoint_d = 0.0;      // m (중력 방향 벡터 기준 목표점 거리, 음수값 기대)
   ControlMode ctrl_mode_;
   bool is_master_request = false;   // master request 성공 후 false
 
