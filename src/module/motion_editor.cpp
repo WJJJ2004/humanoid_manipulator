@@ -104,7 +104,7 @@ void MotionEditor::editByStepAndMap(const std::string& step_name,
   put("rotate_5");
   put("gripper");
 
-  if (sub.empty()) return; // 바꿀게 없으면 조용히 반환
+  if (sub.empty()) return;
   editJoints(step_name, sub, false);
 }
 
@@ -117,7 +117,7 @@ void MotionEditor::editJoints(const std::string& step_name,
 
   Frame& f = frames_[idx];
 
-  // id -> dxl 포인터 맵 만들기 (빠른 갱신)
+  // id -> dxl 포인터 맵 만들기
   std::unordered_map<int, DxlValue*> id2dxl;
   id2dxl.reserve(f.dxl.size());
   for (auto& dv : f.dxl) id2dxl[dv.id] = &dv;
@@ -193,14 +193,14 @@ YAML::Node MotionEditor::buildYamlFromAll(const std::vector<MetaBlob>& metas,
 {
   YAML::Node out(YAML::NodeType::Sequence);
 
-  // 1) 메타 항목들(로드한 rawYaml 그대로 다시 파싱해서 삽입)
+  // 메타 항목들(로드한 rawYaml 그대로 다시 파싱해서 삽입)
   for (const auto& mb : metas)
   {
     YAML::Node m = YAML::Load(mb.rawYaml);
     out.push_back(m);
   }
 
-  // 2) 프레임들
+  // 프레임들
   for (const auto& f : frames)
   {
     YAML::Node node;
