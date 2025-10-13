@@ -527,11 +527,11 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   // MOTION EDITOR 바인딩
   JointPosMap jpm;
   jpm["rotate_torso"] = q_current_[0];
-  jpm["rotate_0"]     = q_current_[1];
+  jpm["rotate_0"]     = 1.74533;
   jpm["rotate_1"]     = q_current_[1];
-  jpm["rotate_2"]     = -1.0 * q_current_[2];
+  jpm["rotate_2"]     = -0.523599;
   jpm["rotate_3"]     = q_current_[2];
-  jpm["rotate_4"]     = -1.0 * q_current_[3];
+  jpm["rotate_4"]     = 0.0;
   jpm["rotate_5"]     = q_current_[3];
 
   // 그리퍼 조작 >> STEP_NUM 2, 5 : OPEN / STEP_NUM 3, 4 : CLOSE
