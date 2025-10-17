@@ -280,7 +280,7 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
   try {
     bindTargetToMotion(interp_pos, 2);   // 접근 포즈 + 그리퍼 개발
     bindTargetToMotion(target_pos, 3);   // 타겟 지점 + 그리퍼 개방
-    bindTargetToMotion(target_pos, 4);   // 경유점   + 그리퍼 닫힘
+    bindTargetToMotion(target_pos, 4);   // 경유점    + 그리퍼 닫힘
     bindTargetToMotion(interp_pos, 5);   // 경유점 + 그리퍼 닫힘
   }
   catch (const std::exception& e) {
@@ -534,8 +534,8 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   jpm["rotate_4"]     = 0.0;
   jpm["rotate_5"]     = q_current_[3];
 
-  // 그리퍼 조작 >> STEP_NUM 2, 5 : OPEN / STEP_NUM 3, 4 : CLOSE
-  if(step_num % 3 == 2 )
+  // 그리퍼 조작 >> 2번 개방, 3번 개방, 4번 닫힘, 5번 닫힘
+  if(step_num < 4)
   {
     jpm["gripper"] = GRIPPER_OPEN_RAD;
   }
