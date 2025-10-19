@@ -24,6 +24,9 @@ It integrates:
 - SRDF/URDF reference configurations
 - Teleoperation and automatic vision-based modes
 
+  [스크린캐스트 09-29-2025 06_30_50 PM.webm](https://github.com/user-attachments/assets/cf3b055e-b6f5-40f3-8d1e-f2a122e52c54)
+
+
 ---
 
 ## Installation & Execution
