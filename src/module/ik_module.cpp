@@ -222,7 +222,7 @@ pinocchio::SE3 IKModule::makeTiltOnlyTarget(const Eigen::Matrix3d& R_current,
 
 bool IKModule::computeIKPrioritySE3(const pinocchio::SE3& target_se3,
                                     Eigen::VectorXd&      solution,
-                                    bool                  tilt_only /* = true for z-align */)
+                                    bool                  tilt_only)
 {
   Eigen::VectorXd backup = solution;
 
@@ -249,7 +249,7 @@ bool IKModule::computeIKPrioritySE3(const pinocchio::SE3& target_se3,
     }
 
     const Eigen::Vector3d p    = M_ee.translation();
-    const Eigen::Vector3d e_p  = M_des.translation() - p; // [월드 기준 위치오차]
+    const Eigen::Vector3d e_p  = M_des.translation() - p; // 월드 기준 위치오차
 
     const Eigen::Matrix3d R_err = M_ee.rotation().transpose() * M_des.rotation();
     const Eigen::Vector3d e_R   = pinocchio::log3(R_err);
@@ -264,7 +264,7 @@ bool IKModule::computeIKPrioritySE3(const pinocchio::SE3& target_se3,
     Eigen::Matrix<double,6,6> S = Eigen::Matrix<double,6,6>::Identity();
     S(3,3) = params_.roll_weight;  // roll
     S(4,4) = params_.pitch_weight;  // pitch
-    S(5,5) = params_.yaw_weight; // 마지막 행/열: 회전 z축(=yaw)
+    S(5,5) = params_.yaw_weight; // 마지막 행/열: 회전 z축
 
     // 가중치 적용
     const Eigen::MatrixXd J = S * J6;    // (6×nv)
@@ -273,8 +273,6 @@ bool IKModule::computeIKPrioritySE3(const pinocchio::SE3& target_se3,
     Eigen::MatrixXd I6 = Eigen::MatrixXd::Identity(J.rows(), J.rows());
     Eigen::MatrixXd J_pinv = J.transpose() * (J * J.transpose() + lambda*lambda * I6).inverse();
     Eigen::VectorXd dq = alpha * (J_pinv * y);
-
-    // 스텝 클램프(있다면)
     clampStep(dq);
 
     // 업데이트 & 조인트 한계
@@ -289,7 +287,7 @@ bool IKModule::computeIKPrioritySE3(const pinocchio::SE3& target_se3,
       return true;
     }
   }
-  solution = backup; // 미수렴 → 롤백
+  solution = backup; // 미수렴시 롤백
   return false;
 }
 
