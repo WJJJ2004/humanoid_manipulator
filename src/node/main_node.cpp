@@ -81,6 +81,7 @@ GripperMainNode::GripperMainNode(const std::string& urdf_path, const std::string
     motion_editor_->loadFromFile(yaml_path);
   } catch (const std::exception& e) {
     std::cerr << "ERR: " << e.what() << "\n";
+    rclcpp::shutdown();
   }
 
   // TF INITIALIZE
