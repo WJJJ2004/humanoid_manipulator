@@ -1,5 +1,5 @@
 #pragma once
-
+#define NUC_2
 #include <memory>
 #include <string>
 

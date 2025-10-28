@@ -135,7 +135,7 @@ void MotionEditor::editJoints(const std::string& step_name,
     auto it2 = id2dxl.find(id);
     if (it2 == id2dxl.end())
     {
-      // 해당 프레임 dxl에 없으면 새로 추가 >> 특정 id 값이 빠진 경우에 대한 예외처리
+      // 해당 프레임 dxl에 없으면 새로 추가(일부 파일에 특정 id가 빠져있을 수도 있으므로)
       DxlValue dv; dv.id = id; dv.position = qrad;
       f.dxl.push_back(dv);
       id2dxl[id] = &f.dxl.back();

@@ -1,8 +1,18 @@
 #include "node/main_node.hpp"
 #include <iostream>
 
-#define GRIPPER_OPEN_RAD -0.98017690792001511
-#define GRIPPER_CLOSE_RAD 0.24022122533307867
+#ifdef NUC_7
+  #define GRIPPER_OPEN_RAD   -0.98017690792001511
+  #define GRIPPER_CLOSE_RAD   0.24022122533307867
+
+#elif defined(NUC_2)
+  #define GRIPPER_OPEN_RAD    0.0
+  #define GRIPPER_CLOSE_RAD   0.30179938779914941
+
+#else
+  #error "No valid NUC type defined!"
+#endif
+
 #define FIRST_STEP 2
 
 using std::placeholders::_1;
@@ -209,7 +219,7 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
 
   if(!is_master_request)
   {
-    RCLCPP_INFO(get_logger(), "onMasterRequest: Received target: x=%.3f, y=%.3f, z=%.3f",
+    RCLCPP_INFO(get_logger(), "onMasterRequest: Received target: x=%.3f, y=%.3f, z=%.3f", // x=95.760, y=-28.640, z=321.700
                 msg->x, msg->y, msg->z);
     is_master_request = true;
   }
@@ -240,29 +250,29 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
   {
     RCLCPP_INFO(get_logger(), "onMasterRequest: IN EYE target: x=%.3f, y=%.3f, z=%.3f",
                 in_eye.point.x, in_eye.point.y, in_eye.point.z);
-    RCLCPP_INFO(get_logger(), "onMasterRequest: Transformed target: x=%.3f, y=%.3f, z=%.3f",
+    RCLCPP_INFO(get_logger(), "onMasterRequest: Transformed target: x=%.3f, y=%.3f, z=%.3f",    // x=0.315, y=0.058, z=-0.009
                 out_base.point.x, out_base.point.y, out_base.point.z);
   }
 
   // 현재 YAW 기준으로 base link Frame에서 World Frame으로 좌표 변환
-  Eigen::Vector3d pB(out_base.point.x, out_base.point.y, out_base.point.z);
-  Eigen::Vector3d t_pivot(0.0, 0.0, 0.0);
+  Eigen::Vector3d pW0(out_base.point.x, out_base.point.y, out_base.point.z);
+  // Eigen::Vector3d t_pivot(0.0, 0.0, 0.0);
 
-  const double yaw = q_current_[0];
-  const double c = std::cos(-yaw);
-  const double s = std::sin(-yaw);
+  // const double yaw = q_current_[0];
+  // const double c = std::cos(-yaw);
+  // const double s = std::sin(-yaw);
 
-  Eigen::Matrix3d R;
-  R << c, -s, 0,
-      s,  c, 0,
-      0,  0, 1;
+  // Eigen::Matrix3d R;
+  // R << c, -s, 0,
+  //     s,  c, 0,
+  //     0,  0, 1;
 
-  Eigen::Vector3d pW0 = R * pB;
+  // Eigen::Vector3d pW0 = R * pB;
 
   // 중력 방향 벡터 계산 (롤 오프셋 적용)
-  Eigen::Vector3d unit_vertical_vector = {-1.0 * cos(gravity_offset_roll), 0.0, sin(gravity_offset_roll)};
-  Eigen::Vector3d target_dir = unit_vertical_vector * targetpoint_d;
-  Eigen::Vector3d interp_dir = unit_vertical_vector * waypoint_d;
+  Eigen::Vector3d unit_vertical_vector = {-1.0 * cos(gravity_offset_roll), 0.0, sin(gravity_offset_roll)};   // - 0.4080820618, 0.0, 0.9129462507
+  Eigen::Vector3d target_dir = unit_vertical_vector * targetpoint_d;  //  -0.005
+  Eigen::Vector3d interp_dir = unit_vertical_vector * waypoint_d;   // 0.08
 
 
   auto target_pos = std::make_shared<geometry_msgs::msg::Point>();
@@ -517,7 +527,7 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   if (!ok)
   {
     pub_ctrl_flg_->publish(ctrl_msg);
-    RCLCPP_ERROR(get_logger(), "[BT2M] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);
+    RCLCPP_ERROR(get_logger(), "[BT2M] IK failed. target=(%.3f, %.3f, %.3f)", msg->x, msg->y, msg->z);  //(0.241, -0.054, 0.018)
     throw std::runtime_error("IK failed. step_num=" + std::to_string(step_num));
   }
   else
