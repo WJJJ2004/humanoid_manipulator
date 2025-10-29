@@ -14,6 +14,7 @@
 #endif
 
 #define FIRST_STEP 2
+#define LAST_STEP 5
 
 using std::placeholders::_1;
 namespace SRCIRC2025_HUMANOID_LOCOMOTION
@@ -255,19 +256,19 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
   }
 
   // 현재 YAW 기준으로 base link Frame에서 World Frame으로 좌표 변환
-  Eigen::Vector3d pW0(out_base.point.x, out_base.point.y, out_base.point.z);
+  Eigen::Vector3d pB(out_base.point.x, out_base.point.y, out_base.point.z);
   // Eigen::Vector3d t_pivot(0.0, 0.0, 0.0);
 
-  // const double yaw = q_current_[0];
-  // const double c = std::cos(-yaw);
-  // const double s = std::sin(-yaw);
+  const double yaw = q_current_[0];
+  const double c = std::cos(-yaw);
+  const double s = std::sin(-yaw);
 
-  // Eigen::Matrix3d R;
-  // R << c, -s, 0,
-  //     s,  c, 0,
-  //     0,  0, 1;
+  Eigen::Matrix3d R;
+  R << c, -s, 0,
+      s,  c, 0,
+      0,  0, 1;
 
-  // Eigen::Vector3d pW0 = R * pB;
+  Eigen::Vector3d pW0 = R * pB;
 
   // 중력 방향 벡터 계산 (롤 오프셋 적용)
   Eigen::Vector3d unit_vertical_vector = {-1.0 * cos(gravity_offset_roll), 0.0, sin(gravity_offset_roll)};   // - 0.4080820618, 0.0, 0.9129462507
@@ -288,23 +289,58 @@ void GripperMainNode::onMasterRequest(const geometry_msgs::msg::Point32::SharedP
 
   std_msgs::msg::Bool ctrl_flg;
 
-  try {
-    bindTargetToMotion(interp_pos, 2);   // 접근 포즈 + 그리퍼 개발
+  try
+  {
+    bindTargetToMotion(interp_pos, FIRST_STEP);   // 접근 포즈
+  }
+  catch (const std::exception& e)
+  {
+    RCLCPP_ERROR(get_logger(), "[OMR]: bindTargetToMotion exception: %s", e.what());
+    RCLCPP_ERROR(get_logger(), "[OMR]: Setting IK Seed Position as Way Point offset.");
+
+    q_current_ = ik_->initialConfiguration();
+    JointPosMap jpm;
+
+    jpm["rotate_torso"] = q_current_[0];
+    jpm["rotate_0"]     = 1.74533;
+    jpm["rotate_1"]     = q_current_[1];
+    jpm["rotate_2"]     = -0.523599;
+    jpm["rotate_3"]     = q_current_[2];
+    jpm["rotate_4"]     = 0.0;
+    jpm["rotate_5"]     = q_current_[3];
+
+    try {
+      jpm["gripper"]     = GRIPPER_OPEN_RAD;
+      motion_editor_->editByStepAndMap(std::to_string(FIRST_STEP), jpm);
+      jpm["gripper"]     = GRIPPER_CLOSE_RAD;
+      motion_editor_->editByStepAndMap(std::to_string(LAST_STEP), jpm);
+    }
+    catch (const std::exception& e)
+    {
+      RCLCPP_ERROR(get_logger(), "[OMR]: MotionEditor editByStepAndMap exception: %s", e.what());
+      is_master_request = false;
+      ctrl_flg.data = false;
+      pub_ctrl_flg_->publish(ctrl_flg);
+    }
+  }
+
+  try
+  {
     bindTargetToMotion(target_pos, 3);   // 타겟 지점 + 그리퍼 개방
     bindTargetToMotion(target_pos, 4);   // 경유점    + 그리퍼 닫힘
-    bindTargetToMotion(interp_pos, 5);   // 경유점 + 그리퍼 닫힘
   }
-  catch (const std::exception& e) {
-    RCLCPP_ERROR(get_logger(), "[OMR]: bindTargetToMotion exception: %s", e.what());
+  catch (const std::exception& e)
+  {
+    RCLCPP_ERROR(get_logger(), "[OMR]: BT2M exception IN TARGET POSITION: %s", e.what());
     is_master_request = false;
     ctrl_flg.data = false;
     pub_ctrl_flg_->publish(ctrl_flg);
-    return;
   }
 
   is_master_request = false;
   ctrl_flg.data = true;
   pub_ctrl_flg_->publish(ctrl_flg);
+  motion_editor_->saveToFile(yaml_path);
   RCLCPP_INFO(get_logger(), "onMasterRequest: Published control flag to /mani2master.");
   RCLCPP_INFO(get_logger(), "onMasterRequest: Processed target: x=%.3f, y=%.3f, z=%.3f",
               target_pos->x, target_pos->y, target_pos->z);
@@ -500,8 +536,9 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
     throw std::runtime_error("[BT2M] received null msg");
   }
 
+  bool is_waypoint = (step_num == FIRST_STEP || step_num == LAST_STEP);
   // 최초 시드 자세 리셋
-  if(step_num == FIRST_STEP)
+  if(is_waypoint)
   {
     params_.ref_name = "waypoint_offset";
     ik_->setParams(params_);
@@ -555,10 +592,20 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
     jpm["gripper"] = GRIPPER_CLOSE_RAD;
   }
 
-  std::string step_name = std::to_string(step_num);
-  motion_editor_->editByStepAndMap(step_name, jpm);
-  motion_editor_->saveToFile(yaml_path);
-  RCLCPP_INFO(get_logger(), "[MN] MotionEditor updated step '%s' with new joint positions.", step_name.c_str());
+  if(!is_waypoint)
+  {
+    std::string step_name = std::to_string(step_num);
+    motion_editor_->editByStepAndMap(step_name, jpm);
+    // motion_editor_->saveToFile(yaml_path);
+    RCLCPP_INFO(get_logger(), "[MN] MotionEditor updated step '%s' with new joint positions.", step_name.c_str());
+  }
+  else
+  {
+    motion_editor_->editByStepAndMap(std::to_string(FIRST_STEP), jpm);
+    motion_editor_->editByStepAndMap(std::to_string(LAST_STEP), jpm);
+    // motion_editor_->saveToFile(yaml_path);
+    RCLCPP_INFO(get_logger(), "[MN] MotionEditor updated waypoint steps with new joint positions.");
+  }
 }
 
 void GripperMainNode::getParamsFromRos()

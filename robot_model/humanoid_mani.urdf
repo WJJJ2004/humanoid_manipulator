@@ -274,7 +274,7 @@
     <parent link="base_link"/>
     <child link="torso_1"/>
     <axis xyz="0.0 -0.0 1.0"/>
-    <limit effort="100.0" lower="-3.1415" upper="3.1415" velocity="1.0"/>
+    <limit effort="100.0" lower="-1.57" upper="1.57" velocity="1.0"/>
   </joint>
   <joint name="rgb_dummy" type="fixed">
     <origin rpy="0 0 0" xyz="0.002 0.017963 0.04"/>
