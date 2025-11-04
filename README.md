@@ -4,16 +4,20 @@ Intelligent Robot Competition – Humanoid Robot Sports
 ## Outline
 > ROS2 package for autonomous control of a humanoid manipulator.  
 > Supports Pinocchio-based IK computation, motion generation, and Teleop/Auto modes.
+> Generates end-effector trajectories according to task objectives and computes IK to produce arm motions.
+> Performs collision checking using Pinocchio + URDF-based geometry (HPP-FCL) to ensure arm-motion safety before execution.
+> Blends generated arm motions with lower-body motions (from Motion Teacher), enabling synchronized and stable full-body motion
 
 ---
 
 ## 📁 Table of Contents
 
-1. [Overview](#overview)  
-2. [Installation & Execution](#installation--execution)  
-3. [Parameter Tuning](#parameter-tuning)  
-4. [Development Environment](#development-environment)  
-5. [Dependencies](#dependencies)  
+1. [Overview](#overview)
+2. [Demonstrations](#Demonstrations)  
+3. [Installation & Execution](#installation--execution)  
+4. [Parameter Tuning](#parameter-tuning)  
+5. [Development Environment](#development-environment)  
+6. [Dependencies](#dependencies)  
 
 ---
 
@@ -24,6 +28,9 @@ It integrates:
 - The Pinocchio library is used within ROS2 to perform collision checking based on the geometric models defined in the URDF. This ensures the safety of arm motions before execution.
 - The generated arm motions are blended with lower-body motions created using the Motion Teacher, allowing the whole robot to move in a stable manner. Through this process, the arm and lower body are controlled synchronously.
 
+---
+
+## Demonstrations
 ### Stop movement for arm movements corresponding to self-collision
 https://github.com/user-attachments/assets/2fbb4578-f151-4b23-b5c8-d9b63be6aeed
 
