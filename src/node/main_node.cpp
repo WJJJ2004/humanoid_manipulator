@@ -601,7 +601,9 @@ void GripperMainNode::bindTargetToMotion(const geometry_msgs::msg::Point::Shared
   }
   else
   {
+    jpm["gripper"] = GRIPPER_OPEN_RAD;
     motion_editor_->editByStepAndMap(std::to_string(FIRST_STEP), jpm);
+    jpm["gripper"] = GRIPPER_CLOSE_RAD;
     motion_editor_->editByStepAndMap(std::to_string(LAST_STEP), jpm);
     // motion_editor_->saveToFile(yaml_path);
     RCLCPP_INFO(get_logger(), "[MN] MotionEditor updated waypoint steps with new joint positions.");
